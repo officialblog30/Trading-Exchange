@@ -54,6 +54,11 @@
         .hidden {
             display: none;
         }
+        .warning {
+            color: yellow;
+            font-size: 14px;
+            display: none;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -96,37 +101,33 @@
             <option value="Binance">Binance</option>
             <option value="Coinbase">Coinbase</option>
             <option value="Kraken">Kraken</option>
-            <option value="Bitfinex">Bitfinex</option>
-            <option value="eToro">eToro</option>
-            <option value="Crypto.com">Crypto.com</option>
-            <option value="Huobi">Huobi</option>
-            <option value="OKX">OKX</option>
-            <option value="Bybit">Bybit</option>
-            <option value="KuCoin">KuCoin</option>
             <option value="Other">Other</option>
         </select>
         <input type="text" id="otherBroker" class="hidden" placeholder="Enter Other Broker Name">
 
         <label for="crypto">Select Cryptocurrency:</label>
-        <select id="crypto" required>
+        <select id="crypto" required onchange="updateWalletValidation()">
             <option value="">Select Crypto</option>
-            <option value="Bitcoin">Bitcoin (BTC)</option>
-            <option value="Ethereum">Ethereum (ETH)</option>
-            <option value="Ripple">Ripple (XRP)</option>
-            <option value="Litecoin">Litecoin (LTC)</option>
-            <option value="Dogecoin">Dogecoin (DOGE)</option>
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="ETH">Ethereum (ETH)</option>
+            <option value="XRP">Ripple (XRP)</option>
+            <option value="LTC">Litecoin (LTC)</option>
         </select>
+
+        <label for="wallet">Wallet Address:</label>
+        <input type="text" id="wallet" required placeholder="Enter wallet address">
+        <span class="warning" id="walletWarning">Invalid wallet address format.</span>
 
         <label for="exchangeCurrency">Exchange To:</label>
         <select id="exchangeCurrency" required>
             <option value="">Select Currency</option>
             <option value="USD">US Dollar (USD)</option>
             <option value="EUR">Euro (EUR)</option>
-            <option value="GBP">British Pound (GBP)</option>
         </select>
 
         <label for="amount">Enter Amount:</label>
-        <input type="number" id="amount" required placeholder="Enter amount">
+        <input type="number" id="amount" required placeholder="Enter amount" max="100">
+        <span class="warning" id="amountWarning">Max exchange amount is 100. If exceeded, you may lose money!</span>
 
         <label for="total">Total After Exchange:</label>
         <input type="text" id="total" readonly>
@@ -138,9 +139,6 @@
         <textarea id="description" rows="3" required></textarea>
 
         <p class="message">The transfer may take up to 5-7 business days before it can be delivered.</p>
-
-        <label for="payoneer">Alternative Payment (If Bank Not Available):</label>
-        <input type="text" id="payoneer" placeholder="Enter Payoneer Details (Optional)">
 
         <label for="captcha">Verification Code:</label>
         <div class="captcha-box">
@@ -161,17 +159,33 @@
 </div>
 
 <script>
-    document.getElementById('amount').addEventListener('input', function() {
-        let amount = parseFloat(this.value) || 0;
-        let fee = amount * 0.20;
-        let total = amount - fee;
-        document.getElementById('fees').value = fee.toFixed(2);
-        document.getElementById('total').value = total.toFixed(2);
-    });
-
     function toggleOtherBroker() {
         let broker = document.getElementById('broker').value;
         document.getElementById('otherBroker').classList.toggle('hidden', broker !== "Other");
+    }
+
+    function updateWalletValidation() {
+        document.getElementById('wallet').value = "";
+    }
+
+    function validateWalletAddress() {
+        let crypto = document.getElementById('crypto').value;
+        let wallet = document.getElementById('wallet').value.trim();
+        let walletWarning = document.getElementById('walletWarning');
+
+        const regexPatterns = {
+            BTC: /^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/,
+            ETH: /^0x[a-fA-F0-9]{40}$/,
+            XRP: /^r[a-zA-Z0-9]{24,34}$/,
+            LTC: /^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$/
+        };
+
+        if (crypto && regexPatterns[crypto] && !regexPatterns[crypto].test(wallet)) {
+            walletWarning.style.display = "block";
+            return false;
+        }
+        walletWarning.style.display = "none";
+        return true;
     }
 
     function generateCaptcha() {
@@ -184,6 +198,14 @@
 
     document.getElementById('cryptoForm').addEventListener('submit', function(event) {
         event.preventDefault();
+
+        if (!validateWalletAddress()) return;
+
+        let amount = parseFloat(document.getElementById('amount').value);
+        if (amount > 100) {
+            document.getElementById('amountWarning').style.display = "block";
+            return;
+        }
 
         let captchaInput = document.getElementById('captchaInput').value.toUpperCase();
         if (captchaInput !== captchaCode) {
@@ -205,6 +227,8 @@
             setTimeout(() => modal.style.display = 'none', 3000);
         }, 15000);
     });
+
+    document.getElementById('wallet').addEventListener('input', validateWalletAddress);
 </script>
 
 </body>
